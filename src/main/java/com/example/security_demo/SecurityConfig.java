@@ -5,6 +5,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -28,9 +32,29 @@ public class SecurityConfig {
         // this makes the authentication STATELESS
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        http.formLogin(withDefaults());
+        // http.formLogin(withDefaults());
         http.httpBasic(withDefaults());
+
         return http.build();
+    }
+
+
+    @Bean
+    /**
+     * Since the app still doesn't have a database the authentication can be done using an
+     * in-memory session, which means the application will store the information while the 
+     * server is running. This is not an ideal solution, but it's done in the tutorial, so 
+     * I'm copying it here. Soon this process will change to retrive a user from a database
+     */
+    public UserDetailsService userDetailsService(){
+
+        // These credentials are in-memory
+        UserDetails user1 = User.withUsername("wilson").password("{noop}12").roles("USER").build();
+        UserDetails user2 = User.withUsername("rafael").password("{noop}123").roles("USER").build();
+        UserDetails admin = User.withUsername("julia").password("{noop}1234").roles("ADMIN").build();
+
+        // Then I can add them here and try to access a secured endpoint
+        return new InMemoryUserDetailsManager(user1, user2, admin);
     }
 
 }

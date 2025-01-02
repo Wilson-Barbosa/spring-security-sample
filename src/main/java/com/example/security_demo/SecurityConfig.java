@@ -2,6 +2,7 @@ package com.example.security_demo;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -16,6 +17,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration //marks this class as a configuration class
 @EnableWebSecurity // enables this class to work as a webSecurity
+@EnableMethodSecurity // used for the @PreAuthorize annotation inside the controllers
 public class SecurityConfig {
 
 
@@ -46,9 +48,9 @@ public class SecurityConfig {
      * server is running. This is not an ideal solution, but it's done in the tutorial, so 
      * I'm copying it here. Soon this process will change to retrive a user from a database
      */
-    public UserDetailsService userDetailsService(){
+    UserDetailsService userDetailsService(){
 
-        // These credentials are in-memory
+        // These credentials are in-memory. The objects are created using the builder pattern
         UserDetails user1 = User.withUsername("wilson").password("{noop}12").roles("USER").build();
         UserDetails user2 = User.withUsername("rafael").password("{noop}123").roles("USER").build();
         UserDetails admin = User.withUsername("julia").password("{noop}1234").roles("ADMIN").build();

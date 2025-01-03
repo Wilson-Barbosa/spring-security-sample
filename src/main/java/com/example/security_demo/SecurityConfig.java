@@ -28,8 +28,17 @@ public class SecurityConfig {
      * for the server. This will make so the app 
      */
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        // this says that any request received by the server must be authenticated
-        http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
+    
+        /**
+         * Using the builder pattern I can build a SecurityFilter and apply multiple rulings
+         */ 
+        http.authorizeHttpRequests((requests) -> requests
+                                                .requestMatchers("/h2-console/**").permitAll() // from the url I can allow certain paths
+                                                .anyRequest().authenticated()
+        );
+
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin())); // allows the h2-console frames to be displayed
+        http.csrf(csrf -> csrf.disable()); // removes the authentication form for h2 access
 
         // this makes the authentication STATELESS
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

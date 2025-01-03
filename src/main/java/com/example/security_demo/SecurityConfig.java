@@ -1,5 +1,7 @@
 package com.example.security_demo;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -8,11 +10,15 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder.BCryptVersion;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 import static org.springframework.security.config.Customizer.withDefaults;
+
+import javax.sql.DataSource;
 
 
 @Configuration //marks this class as a configuration class
@@ -20,6 +26,8 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableMethodSecurity // used for the @PreAuthorize annotation inside the controllers
 public class SecurityConfig {
 
+    @Autowired
+    DataSource dataSource;
 
     @Bean
     /*
@@ -50,22 +58,50 @@ public class SecurityConfig {
     }
 
 
-    @Bean
     /**
-     * Since the app still doesn't have a database the authentication can be done using an
-     * in-memory session, which means the application will store the information while the 
-     * server is running. This is not an ideal solution, but it's done in the tutorial, so 
-     * I'm copying it here. Soon this process will change to retrive a user from a database
+     * H2 database was added and therefore it can be used to store and retrive user credentials.
+     * A schema.sql will be executed and these users will be added to the tables... I'm using this
+     * application runner because the schema was being generated AFTER the attemp to persist the data
      */
-    UserDetailsService userDetailsService(){
+    @Bean
+    ApplicationRunner initUsers(){
+        return args -> {
 
-        // These credentials are in-memory. The objects are created using the builder pattern
-        UserDetails user1 = User.withUsername("wilson").password("{noop}12").roles("USER").build();
-        UserDetails user2 = User.withUsername("rafael").password("{noop}123").roles("USER").build();
-        UserDetails admin = User.withUsername("julia").password("{noop}1234").roles("ADMIN").build();
 
-        // Then I can add them here and try to access a secured endpoint
-        return new InMemoryUserDetailsManager(user1, user2, admin);
+
+            // These objects are created using the builder pattern.
+            UserDetails user1 = User.withUsername("wilson")
+                                    .password(passwordEncoder().encode("pass123"))
+                                    .roles("USER").build();
+            UserDetails user2 = User.withUsername("rafael")
+                                    .password(passwordEncoder().encode("pass123"))
+                                    .roles("USER").build();
+            UserDetails admin = User.withUsername("julia")
+                                    .password(passwordEncoder().encode("adminpassword"))
+                                    .roles("ADMIN").build();
+
+            /**
+             * It's important to note that JdbcUserDetailsManager's createUser() method actually 
+             * persists the credentials into a database, in my case the h2, meaning it will try
+             * to execute sql statements upon its instantiantion. See the implementation
+             * on JdbcUserDetailsManager decompiled class for more info.
+             */
+            JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+            jdbcUserDetailsManager.createUser(user1);
+            jdbcUserDetailsManager.createUser(user2);
+            jdbcUserDetailsManager.createUser(admin);
+        };
+
     }
+
+
+    /**
+     * Returns a BCrypt implementation of a passwordEnconder. Use enconde() to hash the password 
+     */
+    @Bean
+    PasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder(BCryptVersion.$2Y);
+    }
+    
 
 }
